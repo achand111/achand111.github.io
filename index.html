@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TestSite — Home</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="loader">
+    <div class="loader-ring"></div>
+  </div>
+
+  <canvas id="particle-canvas"></canvas>
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-logo">TestSite</a>
+    <ul class="nav-links">
+      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <h1 class="hero-title">
+      <span class="line line-1">Welcome to</span>
+      <span class="line line-2 gradient-text">TestSite</span>
+    </h1>
+    <p class="hero-sub">A playground of <span class="typewriter" id="typewriter"></span><span class="cursor">|</span></p>
+    <div class="hero-buttons">
+      <a href="about.html" class="btn btn-primary">Explore</a>
+      <a href="contact.html" class="btn btn-outline">Get in Touch</a>
+    </div>
+  </section>
+
+  <section class="cards-section">
+    <h2 class="section-title scroll-fade">What We Do</h2>
+    <div class="cards-grid">
+      <div class="card scroll-fade">
+        <div class="card-icon">&#x2728;</div>
+        <h3>Design</h3>
+        <p>Beautiful interfaces crafted with precision and care.</p>
+      </div>
+      <div class="card scroll-fade">
+        <div class="card-icon">&#x26A1;</div>
+        <h3>Speed</h3>
+        <p>Lightning fast performance that users love.</p>
+      </div>
+      <div class="card scroll-fade">
+        <div class="card-icon">&#x1F680;</div>
+        <h3>Innovation</h3>
+        <p>Pushing boundaries with cutting edge technology.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="stats-section">
+    <div class="stat scroll-fade">
+      <span class="stat-number" data-target="150">0</span>+
+      <span class="stat-label">Projects</span>
+    </div>
+    <div class="stat scroll-fade">
+      <span class="stat-number" data-target="98">0</span>%
+      <span class="stat-label">Satisfaction</span>
+    </div>
+    <div class="stat scroll-fade">
+      <span class="stat-number" data-target="24">0</span>/7
+      <span class="stat-label">Support</span>
+    </div>
+  </section>
+
+  <section class="cta-section scroll-fade">
+    <h2>Ready to Build Something Amazing?</h2>
+    <a href="contact.html" class="btn btn-primary btn-lg">Start Now</a>
+  </section>
+
+  <footer class="footer">
+    <p>&copy; 2026 TestSite. Built with passion.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
