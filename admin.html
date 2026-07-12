@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hub - Admin</title>
+<link rel="icon" href="images/icon.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;min-height:100vh}
+  .admin-inner{max-width:640px;margin:0 auto;padding:2rem;position:relative;z-index:1}
+  .admin-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+  .admin-header h2{font-size:1.2rem;font-weight:400;letter-spacing:.1em;color:#888}
+  .admin-nav{display:flex;gap:.5rem}
+  .admin-nav button{
+    background:none;border:1px solid #333;color:#888;padding:.4rem 1rem;border-radius:6px;
+    cursor:pointer;font-size:.8rem;letter-spacing:.05em;transition:all .2s;
+  }
+  .admin-nav button:hover{border-color:#666;color:#fff}
+  .admin-section{margin-bottom:2.5rem}
+  .admin-section h3{font-size:.85rem;font-weight:400;letter-spacing:.12em;color:#555;margin-bottom:1rem;text-transform:uppercase}
+  .app-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1.5rem}
+  .app-item{
+    display:flex;align-items:center;gap:1rem;padding:.7rem 1rem;
+    background:rgba(255,255,255,.04);border-radius:8px;border:1px solid rgba(255,255,255,.06);
+  }
+  .app-item img{width:36px;height:36px;border-radius:8px;object-fit:contain;background:rgba(255,255,255,.06);padding:4px}
+  .app-item-info{flex:1}
+  .app-item-name{font-size:.85rem;color:#ccc}
+  .app-item-url{font-size:.7rem;color:#555;margin-top:2px}
+  .app-item-btns{display:flex;gap:.3rem}
+  .app-item-btns button{background:none;border:none;color:#555;cursor:pointer;font-size:1rem;padding:.2rem .5rem;transition:color .2s}
+  .app-item-btns .edit-btn:hover{color:#4dabf7}
+  .app-item-btns .del-btn:hover{color:#ff4444}
+  .admin-form{display:flex;flex-direction:column;gap:.8rem}
+  .admin-form input{
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#fff;
+    padding:.65rem .8rem;border-radius:6px;font-size:.85rem;outline:none;transition:border-color .2s;
+  }
+  .admin-form input:focus{border-color:#444}
+  .admin-form input::placeholder{color:#444}
+  .admin-form .form-btns{display:flex;gap:.5rem}
+  .admin-form .form-btns button{
+    flex:1;border:none;padding:.65rem;border-radius:6px;font-size:.85rem;
+    cursor:pointer;font-weight:500;transition:opacity .2s;letter-spacing:.03em;
+  }
+  .admin-form .save-btn{background:#fff;color:#000}
+  .admin-form .save-btn:hover{opacity:.85}
+  .pw-change{display:flex;gap:.5rem;align-items:center}
+  .pw-change input{flex:1}
+  .pw-change button{
+    white-space:nowrap;background:#fff;color:#000;border:none;padding:.65rem 1.2rem;
+    border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:500;transition:opacity .2s;
+  }
+  .pw-change button:hover{opacity:.85}
+  .admin-toast{
+    position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);
+    color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-size:.8rem;opacity:0;
+    transition:opacity .3s;pointer-events:none;z-index:999;
+  }
+  .admin-toast.show{opacity:1}
+  canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="admin-inner">
+  <div class="admin-header">
+    <h2>ADMIN</h2>
+    <div class="admin-nav">
+      <button onclick="location.href='index.html'">Hub</button>
+      <button onclick="location.href='login.html'">Lock</button>
+    </div>
+  </div>
+  <div class="admin-section">
+    <h3>Your Apps</h3>
+    <div class="app-list" id="admin-app-list"></div>
+  </div>
+  <div class="admin-section">
+    <h3>Add App</h3>
+    <form class="admin-form" id="add-app-form">
+      <input type="text" id="new-app-name" placeholder="App name" required>
+      <input type="url" id="new-app-url" placeholder="https://example.com" required>
+      <input type="text" id="new-app-img" placeholder="Image URL (https://... or images/foo.png)">
+      <div class="form-btns"><button type="submit" class="save-btn">Add App</button></div>
+    </form>
+  </div>
+  <div class="admin-section">
+    <h3>Change Password</h3>
+    <div class="pw-change">
+      <input type="password" id="new-pw" placeholder="New password">
+      <button onclick="changePassword()">Update</button>
+    </div>
+  </div>
+</div>
+<div class="admin-toast" id="toast"></div>
+<script>
+if(!sessionStorage.getItem('hub_admin'))location.href='login.html';
+
+const DEFAULT_MAIN_HASH='6151df3937fa360210913056e1d79f9f8cf9d7f31828737091350be4baaf2ef0';
+const DEFAULT_APPS=[
+  {name:'Zima OS',url:'https://bananabox.acteches.com/',img:'images/zima-os.webp'},
+  {name:'Homarr',url:'https://homarr.acteches.com/',img:'images/homarr.png'},
+  {name:'Immich',url:'https://immich.acteches.com/',img:'images/immich.png'},
+  {name:'Jellyfin',url:'https://jellyfin.acteches.com/',img:'images/jellyfin.png'},
+  {name:'ntfy',url:'https://ntfy.acteches.com/',img:'images/ntfy.png'},
+];
+function getApps(){const r=localStorage.getItem('hub_all_apps');if(!r){localStorage.setItem('hub_all_apps',JSON.stringify(DEFAULT_APPS));return[...DEFAULT_APPS]}return JSON.parse(r)}
+function saveApps(a){localStorage.setItem('hub_all_apps',JSON.stringify(a))}
+function getMainHash(){return localStorage.getItem('hub_main_hash')||DEFAULT_MAIN_HASH}
+function setMainHash(h){localStorage.setItem('hub_main_hash',h)}
+async function sha256(s){const b=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+function esc(s){return s.replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+
+let editingIndex=null;
+
+function renderAdminList(){
+  const apps=getApps(),list=document.getElementById('admin-app-list');list.innerHTML='';
+  apps.forEach((app,i)=>{
+    const item=document.createElement('div');item.className='app-item';
+    if(editingIndex===i){
+      item.style.flexDirection='column';item.style.alignItems='stretch';item.style.gap='.6rem';
+      item.innerHTML=`
+        <input type="text" class="edit-name" value="${esc(app.name)}" placeholder="Name" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#fff;padding:.5rem .6rem;border-radius:4px;font-size:.85rem;outline:none">
+        <input type="url" class="edit-url" value="${esc(app.url)}" placeholder="URL" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#fff;padding:.5rem .6rem;border-radius:4px;font-size:.85rem;outline:none">
+        <input type="text" class="edit-img" value="${esc(app.img)}" placeholder="Image URL" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#fff;padding:.5rem .6rem;border-radius:4px;font-size:.85rem;outline:none">
+        <div style="display:flex;gap:.5rem">
+          <button class="save-edit" style="flex:1;background:#fff;color:#000;border:none;padding:.5rem;border-radius:4px;cursor:pointer;font-size:.8rem;font-weight:500">Save</button>
+          <button class="cancel-edit" style="flex:1;background:rgba(255,255,255,.06);color:#888;border:1px solid rgba(255,255,255,.1);padding:.5rem;border-radius:4px;cursor:pointer;font-size:.8rem">Cancel</button>
+        </div>`;
+      item.querySelector('.save-edit').addEventListener('click',()=>{
+        const name=item.querySelector('.edit-name').value.trim(),url=item.querySelector('.edit-url').value.trim(),img=item.querySelector('.edit-img').value.trim();
+        if(!name||!url){toast('Name and URL required');return}
+        apps[i]={name,url,img};saveApps(apps);editingIndex=null;renderAdminList();toast('App updated');
+      });
+      item.querySelector('.cancel-edit').addEventListener('click',()=>{editingIndex=null;renderAdminList()});
+    } else {
+      item.innerHTML=`
+        <img src="${app.img}" alt="${app.name}" onerror="this.style.display='none'">
+        <div class="app-item-info"><div class="app-item-name">${app.name}</div><div class="app-item-url">${app.url}</div></div>
+        <div class="app-item-btns"><button class="edit-btn" title="Edit">&#9998;</button><button class="del-btn" title="Delete">&times;</button></div>`;
+      item.querySelector('.edit-btn').addEventListener('click',()=>{editingIndex=i;renderAdminList()});
+      item.querySelector('.del-btn').addEventListener('click',()=>{apps.splice(i,1);saveApps(apps);if(editingIndex===i)editingIndex=null;else if(editingIndex!==null&&editingIndex>i)editingIndex--;renderAdminList();toast('App removed')});
+    }
+    list.appendChild(item);
+  });
+}
+renderAdminList();
+
+document.getElementById('add-app-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('new-app-name').value.trim(),url=document.getElementById('new-app-url').value.trim(),img=document.getElementById('new-app-img').value.trim()||'';
+  if(!name||!url)return;
+  const apps=getApps();apps.push({name,url,img});saveApps(apps);
+  document.getElementById('new-app-name').value='';document.getElementById('new-app-url').value='';document.getElementById('new-app-img').value='';
+  renderAdminList();toast('App added');
+});
+
+async function changePassword(){
+  const pw=document.getElementById('new-pw').value;
+  if(!pw||pw.length<4){toast('Password too short');return}
+  setMainHash(await sha256(pw));document.getElementById('new-pw').value='';toast('Password updated');
+}
+
+// --- Particles ---
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+let W,H,particles=[],mouseX=-9999,mouseY=-9999;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();window.addEventListener('resize',resize);
+document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});
+document.addEventListener('mouseleave',()=>{mouseX=-9999;mouseY=-9999});
+class P{
+  constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.4;this.vy=(Math.random()-.5)*.4;this.r=Math.random()*1.5+.5;this.bx=this.vx;this.by=this.vy}
+  update(){
+    const dx=this.x-mouseX,dy=this.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<120&&d>0){const f=(1-d/120)*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}
+    this.vx+=(this.bx-this.vx)*.02;this.vy+=(this.by-this.vy)*.02;
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;
+  }
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fill()}
+}
+function initP(){const c=Math.min(Math.floor(W*H/2500),300);particles=[];for(let i=0;i<c;i++)particles.push(new P())}
+initP();
+function animate(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){
+    const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<150){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(255,255,255,${.15*(1-d/150)})`;ctx.lineWidth=.5;ctx.stroke()}
+  }}
+  for(const p of particles){const dx=p.x-mouseX,dy=p.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);if(d<180){ctx.beginPath();ctx.moveTo(mouseX,mouseY);ctx.lineTo(p.x,p.y);ctx.strokeStyle=`rgba(255,255,255,${.25*(1-d/180)})`;ctx.lineWidth=.6;ctx.stroke()}}
+  for(const p of particles){p.update();p.draw()}
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

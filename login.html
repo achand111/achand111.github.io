@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hub - Login</title>
+<link rel="icon" href="images/icon.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden}
+  .lock-box{text-align:center}
+  .lock-box h1{font-size:1.4rem;font-weight:300;letter-spacing:.15em;margin-bottom:1.8rem;color:#aaa}
+  .lock-box input{
+    background:transparent;border:none;border-bottom:1px solid #444;color:#fff;font-size:1.1rem;
+    padding:.5rem 0;width:220px;text-align:center;outline:none;letter-spacing:.2em;
+    transition:border-color .3s, color .3s;
+  }
+  .lock-box input:focus{border-bottom-color:#fff}
+  .lock-box input::placeholder{color:#555;letter-spacing:.15em}
+  .lock-shake{animation:shake .4s ease}
+  .lock-shake input{color:#ff4444!important;border-bottom-color:#ff4444!important}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-8px)}
+    40%{transform:translateX(8px)}
+    60%{transform:translateX(-5px)}
+    80%{transform:translateX(5px)}
+  }
+  #login-wrap{display:flex;align-items:center;justify-content:center;height:100vh;position:relative;z-index:1}
+  canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="login-wrap">
+  <div class="lock-box" id="lock-box">
+    <h1>ENTER ACCESS CODE</h1>
+    <input type="password" id="pw-input" placeholder="password" autofocus>
+  </div>
+</div>
+<script>
+const ADMIN_HASH = 'd17f25ecfbcc7857f7bebea469308be0b2580943e96d13a3ad98a13675c4bfc2';
+const DEFAULT_MAIN_HASH = '6151df3937fa360210913056e1d79f9f8cf9d7f31828737091350be4baaf2ef0';
+function getMainHash(){return localStorage.getItem('hub_main_hash')||DEFAULT_MAIN_HASH}
+async function sha256(s){const b=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+sessionStorage.removeItem('hub_unlocked');
+sessionStorage.removeItem('hub_admin');
+
+document.getElementById('pw-input').addEventListener('keydown',async e=>{
+  if(e.key!=='Enter')return;
+  const hash=await sha256(e.target.value);
+  if(hash===ADMIN_HASH){sessionStorage.setItem('hub_admin','1');location.href='admin.html'}
+  else if(hash===getMainHash()){sessionStorage.setItem('hub_unlocked','1');location.href='index.html'}
+  else{const b=document.getElementById('lock-box');b.classList.remove('lock-shake');void b.offsetWidth;b.classList.add('lock-shake');setTimeout(()=>b.classList.remove('lock-shake'),450);e.target.value=''}
+});
+
+// --- Particles ---
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+let W,H,particles=[],mouseX=-9999,mouseY=-9999;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();window.addEventListener('resize',resize);
+document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});
+document.addEventListener('mouseleave',()=>{mouseX=-9999;mouseY=-9999});
+class P{
+  constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.4;this.vy=(Math.random()-.5)*.4;this.r=Math.random()*1.5+.5;this.bx=this.vx;this.by=this.vy}
+  update(){
+    const dx=this.x-mouseX,dy=this.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<120&&d>0){const f=(1-d/120)*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}
+    this.vx+=(this.bx-this.vx)*.02;this.vy+=(this.by-this.vy)*.02;
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;
+  }
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fill()}
+}
+function initP(){const c=Math.min(Math.floor(W*H/2500),300);particles=[];for(let i=0;i<c;i++)particles.push(new P())}
+initP();
+function animate(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){
+    const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<150){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(255,255,255,${.15*(1-d/150)})`;ctx.lineWidth=.5;ctx.stroke()}
+  }}
+  for(const p of particles){const dx=p.x-mouseX,dy=p.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);if(d<180){ctx.beginPath();ctx.moveTo(mouseX,mouseY);ctx.lineTo(p.x,p.y);ctx.strokeStyle=`rgba(255,255,255,${.25*(1-d/180)})`;ctx.lineWidth=.6;ctx.stroke()}}
+  for(const p of particles){p.update();p.draw()}
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

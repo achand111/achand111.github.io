@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hub</title>
+<link rel="icon" href="images/icon.png">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#000;color:#fff;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;height:100vh;overflow:hidden}
+  #main{display:flex;align-items:center;justify-content:center;height:100vh;position:relative;z-index:1}
+  .grid{display:flex;flex-direction:column;align-items:center;gap:2.5rem}
+  .row{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap}
+  .icon-link{
+    display:flex;flex-direction:column;align-items:center;gap:.7rem;
+    text-decoration:none;color:#ccc;transition:transform .25s ease, color .25s ease;width:100px;
+  }
+  .icon-link:hover{transform:translateY(-4px);color:#fff}
+  .icon-img{
+    width:72px;height:72px;object-fit:contain;border-radius:18px;
+    background:#111;padding:12px;transition:background .25s ease, box-shadow .25s ease;
+  }
+  .icon-link:hover .icon-img{background:#1a1a1a;box-shadow:0 0 20px rgba(255,255,255,.08)}
+  .icon-label{font-size:.75rem;font-weight:400;letter-spacing:.06em;opacity:.7;transition:opacity .25s;text-align:center}
+  .icon-link:hover .icon-label{opacity:1}
+  #lock-btn{
+    position:fixed;top:1.2rem;right:1.2rem;z-index:10;background:none;border:1px solid #333;
+    color:#555;padding:.4rem .8rem;border-radius:6px;cursor:pointer;font-size:.75rem;
+    letter-spacing:.05em;transition:all .2s;
+  }
+  #lock-btn:hover{border-color:#666;color:#fff}
+  canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<button id="lock-btn" onclick="location.href='login.html'">Lock</button>
+<div id="main"><div class="grid" id="app-grid"></div></div>
+<script>
+if(!sessionStorage.getItem('hub_unlocked'))location.href='login.html';
+
+const DEFAULT_APPS=[
+  {name:'Zima OS',url:'https://bananabox.acteches.com/',img:'images/zima-os.webp'},
+  {name:'Homarr',url:'https://homarr.acteches.com/',img:'images/homarr.png'},
+  {name:'Immich',url:'https://immich.acteches.com/',img:'images/immich.png'},
+  {name:'Jellyfin',url:'https://jellyfin.acteches.com/',img:'images/jellyfin.png'},
+  {name:'ntfy',url:'https://ntfy.acteches.com/',img:'images/ntfy.png'},
+];
+function getApps(){const r=localStorage.getItem('hub_all_apps');if(!r){localStorage.setItem('hub_all_apps',JSON.stringify(DEFAULT_APPS));return[...DEFAULT_APPS]}return JSON.parse(r)}
+
+function renderHub(){
+  const apps=getApps(),grid=document.getElementById('app-grid');grid.innerHTML='';
+  const rows=[];for(let i=0;i<apps.length;i+=3)rows.push(apps.slice(i,i+3));
+  rows.forEach(ra=>{
+    const row=document.createElement('div');row.className='row';
+    ra.forEach(app=>{
+      const a=document.createElement('a');a.className='icon-link';a.href=app.url;a.target='_blank';a.rel='noopener';
+      a.innerHTML=`<img class="icon-img" src="${app.img}" alt="${app.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23222%22 width=%22100%22 height=%22100%22 rx=%2218%22/><text x=%2250%22 y=%2260%22 text-anchor=%22middle%22 fill=%22%23666%22 font-size=%2232%22>${app.name[0]}</text></svg>'"><span class="icon-label">${app.name}</span>`;
+      row.appendChild(a);
+    });
+    grid.appendChild(row);
+  });
+}
+renderHub();
+
+// --- Particles ---
+const canvas=document.getElementById('bg'),ctx=canvas.getContext('2d');
+let W,H,particles=[],mouseX=-9999,mouseY=-9999;
+function resize(){W=canvas.width=innerWidth;H=canvas.height=innerHeight}
+resize();window.addEventListener('resize',resize);
+document.addEventListener('mousemove',e=>{mouseX=e.clientX;mouseY=e.clientY});
+document.addEventListener('mouseleave',()=>{mouseX=-9999;mouseY=-9999});
+class P{
+  constructor(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-.5)*.4;this.vy=(Math.random()-.5)*.4;this.r=Math.random()*1.5+.5;this.bx=this.vx;this.by=this.vy}
+  update(){
+    const dx=this.x-mouseX,dy=this.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<120&&d>0){const f=(1-d/120)*.8;this.vx+=dx/d*f;this.vy+=dy/d*f}
+    this.vx+=(this.bx-this.vx)*.02;this.vy+=(this.by-this.vy)*.02;
+    this.x+=this.vx;this.y+=this.vy;
+    if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1;
+  }
+  draw(){ctx.beginPath();ctx.arc(this.x,this.y,this.r,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.7)';ctx.fill()}
+}
+function initP(){const c=Math.min(Math.floor(W*H/2500),300);particles=[];for(let i=0;i<c;i++)particles.push(new P())}
+initP();
+function animate(){
+  ctx.clearRect(0,0,W,H);
+  for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){
+    const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y,d=Math.sqrt(dx*dx+dy*dy);
+    if(d<150){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);ctx.strokeStyle=`rgba(255,255,255,${.15*(1-d/150)})`;ctx.lineWidth=.5;ctx.stroke()}
+  }}
+  for(const p of particles){const dx=p.x-mouseX,dy=p.y-mouseY,d=Math.sqrt(dx*dx+dy*dy);if(d<180){ctx.beginPath();ctx.moveTo(mouseX,mouseY);ctx.lineTo(p.x,p.y);ctx.strokeStyle=`rgba(255,255,255,${.25*(1-d/180)})`;ctx.lineWidth=.6;ctx.stroke()}}
+  for(const p of particles){p.update();p.draw()}
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
