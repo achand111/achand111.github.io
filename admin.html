@@ -53,6 +53,17 @@
     border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:500;transition:opacity .2s;
   }
   .pw-change button:hover{opacity:.85}
+  .token-section{
+    background:rgba(255,200,50,.08);border:1px solid rgba(255,200,50,.2);border-radius:8px;
+    padding:1rem;margin-bottom:2rem;
+  }
+  .token-section p{font-size:.8rem;color:#aaa;margin-bottom:.6rem}
+  .token-section input{width:100%;margin-bottom:.5rem}
+  .token-section .token-btn{
+    background:#fff;color:#000;border:none;padding:.5rem 1rem;border-radius:6px;
+    font-size:.8rem;cursor:pointer;font-weight:500;
+  }
+  .token-ok{font-size:.75rem;color:#4caf50;margin-top:.3rem}
   .admin-toast{
     position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.1);
     color:#fff;padding:.6rem 1.2rem;border-radius:8px;font-size:.8rem;opacity:0;
@@ -69,12 +80,20 @@
     <h2>ADMIN</h2>
     <div class="admin-nav">
       <button onclick="location.href='index.html'">Hub</button>
-      <button onclick="location.href='login.html'">Lock</button>
+      <button onclick="sessionStorage.clear();location.href='login.html'">Lock</button>
     </div>
   </div>
+
+  <div class="token-section" id="token-section">
+    <p>Enter a GitHub Personal Access Token with repo Contents read/write to sync edits across devices.</p>
+    <input type="password" id="gh-token-input" placeholder="ghp_xxxxxxxxxxxx" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:#fff;padding:.5rem .6rem;border-radius:4px;font-size:.8rem;outline:none;width:100%;margin-bottom:.5rem">
+    <button class="token-btn" onclick="saveToken()">Save Token</button>
+    <div class="token-ok" id="token-ok" style="display:none">Token saved — edits will sync to GitHub</div>
+  </div>
+
   <div class="admin-section">
     <h3>Your Apps</h3>
-    <div class="app-list" id="admin-app-list"></div>
+    <div class="app-list" id="admin-app-list"><div style="color:#555;font-size:.85rem">Loading...</div></div>
   </div>
   <div class="admin-section">
     <h3>Add App</h3>
@@ -97,6 +116,9 @@
 <script>
 if(!sessionStorage.getItem('hub_admin'))location.href='login.html';
 
+const GH_USER='achand111',GH_REPO='achand111.github.io';
+const GH_RAW=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/main/data.json`;
+const GH_API=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/data.json`;
 const DEFAULT_MAIN_HASH='6151df3937fa360210913056e1d79f9f8cf9d7f31828737091350be4baaf2ef0';
 const DEFAULT_APPS=[
   {name:'Zima OS',url:'https://bananabox.acteches.com/',img:'images/zima-os.webp'},
@@ -105,18 +127,51 @@ const DEFAULT_APPS=[
   {name:'Jellyfin',url:'https://jellyfin.acteches.com/',img:'images/jellyfin.png'},
   {name:'ntfy',url:'https://ntfy.acteches.com/',img:'images/ntfy.png'},
 ];
-function getApps(){const r=localStorage.getItem('hub_all_apps');if(!r){localStorage.setItem('hub_all_apps',JSON.stringify(DEFAULT_APPS));return[...DEFAULT_APPS]}return JSON.parse(r)}
-function saveApps(a){localStorage.setItem('hub_all_apps',JSON.stringify(a))}
+
 function getMainHash(){return localStorage.getItem('hub_main_hash')||DEFAULT_MAIN_HASH}
 function setMainHash(h){localStorage.setItem('hub_main_hash',h)}
 async function sha256(s){const b=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',b);return Array.from(new Uint8Array(h)).map(x=>x.toString(16).padStart(2,'0')).join('')}
 function esc(s){return s.replace(/"/g,'&quot;').replace(/</g,'&lt;')}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
+// --- Token ---
+function getToken(){return localStorage.getItem('gh_token')||''}
+function saveToken(){
+  const v=document.getElementById('gh-token-input').value.trim();
+  if(!v){toast('Enter a token');return}
+  localStorage.setItem('gh_token',v);
+  document.getElementById('token-ok').style.display='';
+  toast('Token saved');
+}
+if(getToken()){document.getElementById('token-ok').style.display=''}
+
+// --- GitHub Sync ---
+async function getApps(){
+  try{const r=await fetch(GH_RAW+'?t='+Date.now());if(r.ok){const a=await r.json();localStorage.setItem('hub_all_apps',JSON.stringify(a));return a}}catch(e){}
+  const raw=localStorage.getItem('hub_all_apps');return raw?JSON.parse(raw):[...DEFAULT_APPS];
+}
+
+async function pushApps(apps){
+  localStorage.setItem('hub_all_apps',JSON.stringify(apps));
+  const token=getToken();if(!token)return;
+  try{
+    const meta=await fetch(GH_API,{headers:{'Authorization':`Bearer ${token}`}});
+    const {sha}=await meta.json();
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify(apps,null,2))));
+    await fetch(GH_API,{
+      method:'PUT',
+      headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({message:`Hub: update apps (${new Date().toISOString()})`,content,sha,branch:'main'})
+    });
+    toast('Synced to GitHub');
+  }catch(e){toast('Sync failed — saved locally')}
+}
+
+// --- Admin List ---
 let editingIndex=null;
 
-function renderAdminList(){
-  const apps=getApps(),list=document.getElementById('admin-app-list');list.innerHTML='';
+async function renderAdminList(){
+  const apps=await getApps(),list=document.getElementById('admin-app-list');list.innerHTML='';
   apps.forEach((app,i)=>{
     const item=document.createElement('div');item.className='app-item';
     if(editingIndex===i){
@@ -129,10 +184,10 @@ function renderAdminList(){
           <button class="save-edit" style="flex:1;background:#fff;color:#000;border:none;padding:.5rem;border-radius:4px;cursor:pointer;font-size:.8rem;font-weight:500">Save</button>
           <button class="cancel-edit" style="flex:1;background:rgba(255,255,255,.06);color:#888;border:1px solid rgba(255,255,255,.1);padding:.5rem;border-radius:4px;cursor:pointer;font-size:.8rem">Cancel</button>
         </div>`;
-      item.querySelector('.save-edit').addEventListener('click',()=>{
+      item.querySelector('.save-edit').addEventListener('click',async()=>{
         const name=item.querySelector('.edit-name').value.trim(),url=item.querySelector('.edit-url').value.trim(),img=item.querySelector('.edit-img').value.trim();
         if(!name||!url){toast('Name and URL required');return}
-        apps[i]={name,url,img};saveApps(apps);editingIndex=null;renderAdminList();toast('App updated');
+        apps[i]={name,url,img};await pushApps(apps);editingIndex=null;renderAdminList();
       });
       item.querySelector('.cancel-edit').addEventListener('click',()=>{editingIndex=null;renderAdminList()});
     } else {
@@ -141,20 +196,20 @@ function renderAdminList(){
         <div class="app-item-info"><div class="app-item-name">${app.name}</div><div class="app-item-url">${app.url}</div></div>
         <div class="app-item-btns"><button class="edit-btn" title="Edit">&#9998;</button><button class="del-btn" title="Delete">&times;</button></div>`;
       item.querySelector('.edit-btn').addEventListener('click',()=>{editingIndex=i;renderAdminList()});
-      item.querySelector('.del-btn').addEventListener('click',()=>{apps.splice(i,1);saveApps(apps);if(editingIndex===i)editingIndex=null;else if(editingIndex!==null&&editingIndex>i)editingIndex--;renderAdminList();toast('App removed')});
+      item.querySelector('.del-btn').addEventListener('click',async()=>{apps.splice(i,1);await pushApps(apps);if(editingIndex===i)editingIndex=null;else if(editingIndex!==null&&editingIndex>i)editingIndex--;renderAdminList()});
     }
     list.appendChild(item);
   });
 }
 renderAdminList();
 
-document.getElementById('add-app-form').addEventListener('submit',e=>{
+document.getElementById('add-app-form').addEventListener('submit',async e=>{
   e.preventDefault();
   const name=document.getElementById('new-app-name').value.trim(),url=document.getElementById('new-app-url').value.trim(),img=document.getElementById('new-app-img').value.trim()||'';
   if(!name||!url)return;
-  const apps=getApps();apps.push({name,url,img});saveApps(apps);
+  const apps=await getApps();apps.push({name,url,img});await pushApps(apps);
   document.getElementById('new-app-name').value='';document.getElementById('new-app-url').value='';document.getElementById('new-app-img').value='';
-  renderAdminList();toast('App added');
+  renderAdminList();
 });
 
 async function changePassword(){
