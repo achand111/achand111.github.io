@@ -169,9 +169,15 @@ async function pushApps(apps){
 
 // --- Admin List ---
 let editingIndex=null;
+let currentApps=[];
 
-async function renderAdminList(){
-  const apps=await getApps(),list=document.getElementById('admin-app-list');list.innerHTML='';
+async function loadApps(){
+  currentApps=await getApps();
+  renderAdminList();
+}
+
+function renderAdminList(){
+  const apps=currentApps,list=document.getElementById('admin-app-list');list.innerHTML='';
   apps.forEach((app,i)=>{
     const item=document.createElement('div');item.className='app-item';
     if(editingIndex===i){
@@ -187,7 +193,7 @@ async function renderAdminList(){
       item.querySelector('.save-edit').addEventListener('click',async()=>{
         const name=item.querySelector('.edit-name').value.trim(),url=item.querySelector('.edit-url').value.trim(),img=item.querySelector('.edit-img').value.trim();
         if(!name||!url){toast('Name and URL required');return}
-        apps[i]={name,url,img};await pushApps(apps);editingIndex=null;renderAdminList();
+        apps[i]={name,url,img};currentApps=apps;await pushApps(apps);editingIndex=null;renderAdminList();
       });
       item.querySelector('.cancel-edit').addEventListener('click',()=>{editingIndex=null;renderAdminList()});
     } else {
@@ -196,18 +202,19 @@ async function renderAdminList(){
         <div class="app-item-info"><div class="app-item-name">${app.name}</div><div class="app-item-url">${app.url}</div></div>
         <div class="app-item-btns"><button class="edit-btn" title="Edit">&#9998;</button><button class="del-btn" title="Delete">&times;</button></div>`;
       item.querySelector('.edit-btn').addEventListener('click',()=>{editingIndex=i;renderAdminList()});
-      item.querySelector('.del-btn').addEventListener('click',async()=>{apps.splice(i,1);await pushApps(apps);if(editingIndex===i)editingIndex=null;else if(editingIndex!==null&&editingIndex>i)editingIndex--;renderAdminList()});
+      item.querySelector('.del-btn').addEventListener('click',async()=>{apps.splice(i,1);currentApps=apps;await pushApps(apps);if(editingIndex===i)editingIndex=null;else if(editingIndex!==null&&editingIndex>i)editingIndex--;renderAdminList()});
     }
     list.appendChild(item);
   });
 }
-renderAdminList();
+loadApps();
 
 document.getElementById('add-app-form').addEventListener('submit',async e=>{
   e.preventDefault();
   const name=document.getElementById('new-app-name').value.trim(),url=document.getElementById('new-app-url').value.trim(),img=document.getElementById('new-app-img').value.trim()||'';
   if(!name||!url)return;
-  const apps=await getApps();apps.push({name,url,img});await pushApps(apps);
+  if(!name||!url)return;
+  currentApps.push({name,url,img});await pushApps(currentApps);
   document.getElementById('new-app-name').value='';document.getElementById('new-app-url').value='';document.getElementById('new-app-img').value='';
   renderAdminList();
 });
