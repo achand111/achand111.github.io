@@ -18,5 +18,10 @@
     "name": "Jellyfin",
     "url": "https://jellyfin.acteches.com/",
     "img": "images/jellyfin.png"
+  },
+  {
+    "name": "teste",
+    "url": "https://teset.com",
+    "img": "https://teset.com"
   }
 ]
