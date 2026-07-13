@@ -117,7 +117,6 @@
 if(!sessionStorage.getItem('hub_admin'))location.href='login.html';
 
 const GH_USER='achand111',GH_REPO='achand111.github.io';
-const GH_RAW=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/main/data.json`;
 const GH_API=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/data.json`;
 const DEFAULT_MAIN_HASH='6151df3937fa360210913056e1d79f9f8cf9d7f31828737091350be4baaf2ef0';
 const DEFAULT_APPS=[
@@ -146,23 +145,37 @@ function saveToken(){
 if(getToken()){document.getElementById('token-ok').style.display=''}
 
 // --- GitHub Sync ---
+async function fetchGH(){
+  const token=getToken();
+  const headers=token?{'Authorization':`Bearer ${token}`}:{};
+  const r=await fetch(GH_API+'?t='+Date.now(),{headers,cache:'no-store'});
+  if(!r.ok)throw new Error(r.status);
+  const d=await r.json();
+  const sha=d.sha;
+  const content=decodeURIComponent(escape(atob(d.content)));
+  return{apps:JSON.parse(content),sha};
+}
+
 async function getApps(){
-  try{const r=await fetch(GH_RAW+'?t='+Date.now());if(r.ok){const a=await r.json();localStorage.setItem('hub_all_apps',JSON.stringify(a));return a}}catch(e){}
+  try{const{apps,sha}=await fetchGH();localStorage.setItem('hub_all_apps',JSON.stringify(apps));localStorage.setItem('hub_data_sha',sha);return apps}catch(e){}
   const raw=localStorage.getItem('hub_all_apps');return raw?JSON.parse(raw):[...DEFAULT_APPS];
 }
 
 async function pushApps(apps){
   localStorage.setItem('hub_all_apps',JSON.stringify(apps));
-  const token=getToken();if(!token)return;
+  const token=getToken();if(!token){toast('No token — saved locally only');return}
   try{
-    const meta=await fetch(GH_API,{headers:{'Authorization':`Bearer ${token}`}});
-    const {sha}=await meta.json();
+    let sha=localStorage.getItem('hub_data_sha');
+    if(!sha){const d=await fetchGH();sha=d.sha}
     const content=btoa(unescape(encodeURIComponent(JSON.stringify(apps,null,2))));
-    await fetch(GH_API,{
+    const r=await fetch(GH_API,{
       method:'PUT',
       headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
-      body:JSON.stringify({message:`Hub: update apps (${new Date().toISOString()})`,content,sha,branch:'main'})
+      body:JSON.stringify({message:`Hub: update apps`,content,sha,branch:'main'})
     });
+    if(!r.ok){const e=await r.json();throw new Error(e.message||r.status)}
+    const d=await r.json();
+    localStorage.setItem('hub_data_sha',d.content.sha);
     toast('Synced to GitHub');
   }catch(e){toast('Sync failed — saved locally')}
 }
