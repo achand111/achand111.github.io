@@ -41,7 +41,7 @@
 if(!sessionStorage.getItem('hub_unlocked'))location.href='login.html';
 
 const GH_USER='achand111',GH_REPO='achand111.github.io';
-const GH_RAW=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/main/data.json`;
+const GH_API=`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/data.json`;
 const DEFAULT_APPS=[
   {name:'Zima OS',url:'https://bananabox.acteches.com/',img:'images/zima-os.webp'},
   {name:'Homarr',url:'https://homarr.acteches.com/',img:'images/homarr.png'},
@@ -51,7 +51,7 @@ const DEFAULT_APPS=[
 ];
 
 async function getApps(){
-  try{const r=await fetch(GH_RAW+'?t='+Date.now());if(r.ok){const a=await r.json();localStorage.setItem('hub_all_apps',JSON.stringify(a));return a}}catch(e){}
+  try{const r=await fetch(GH_API+'?t='+Date.now(),{cache:'no-store'});if(r.ok){const d=await r.json();const apps=JSON.parse(decodeURIComponent(escape(atob(d.content))));localStorage.setItem('hub_all_apps',JSON.stringify(apps));return apps}}catch(e){}
   const raw=localStorage.getItem('hub_all_apps');return raw?JSON.parse(raw):[...DEFAULT_APPS];
 }
 
