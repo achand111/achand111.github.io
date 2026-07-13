@@ -1,0 +1,7 @@
+[
+  {"name":"Zima OS","url":"https://bananabox.acteches.com/","img":"images/zima-os.webp"},
+  {"name":"Homarr","url":"https://homarr.acteches.com/","img":"images/homarr.png"},
+  {"name":"Immich","url":"https://immich.acteches.com/","img":"images/immich.png"},
+  {"name":"Jellyfin","url":"https://jellyfin.acteches.com/","img":"images/jellyfin.png"},
+  {"name":"ntfy","url":"https://ntfy.acteches.com/","img":"images/ntfy.png"}
+]
