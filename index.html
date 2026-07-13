@@ -29,16 +29,19 @@
     letter-spacing:.05em;transition:all .2s;
   }
   #lock-btn:hover{border-color:#666;color:#fff}
+  .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:5;color:#555;font-size:.85rem;letter-spacing:.1em}
   canvas#bg{position:fixed;inset:0;z-index:0;pointer-events:none}
 </style>
 </head>
 <body>
 <canvas id="bg"></canvas>
-<button id="lock-btn" onclick="location.href='login.html'">Lock</button>
-<div id="main"><div class="grid" id="app-grid"></div></div>
+<button id="lock-btn" onclick="sessionStorage.clear();location.href='login.html'">Lock</button>
+<div id="main"><div class="loading" id="loading">Loading...</div><div class="grid" id="app-grid" style="display:none"></div></div>
 <script>
 if(!sessionStorage.getItem('hub_unlocked'))location.href='login.html';
 
+const GH_USER='achand111',GH_REPO='achand111.github.io';
+const GH_RAW=`https://raw.githubusercontent.com/${GH_USER}/${GH_REPO}/main/data.json`;
 const DEFAULT_APPS=[
   {name:'Zima OS',url:'https://bananabox.acteches.com/',img:'images/zima-os.webp'},
   {name:'Homarr',url:'https://homarr.acteches.com/',img:'images/homarr.png'},
@@ -46,10 +49,16 @@ const DEFAULT_APPS=[
   {name:'Jellyfin',url:'https://jellyfin.acteches.com/',img:'images/jellyfin.png'},
   {name:'ntfy',url:'https://ntfy.acteches.com/',img:'images/ntfy.png'},
 ];
-function getApps(){const r=localStorage.getItem('hub_all_apps');if(!r){localStorage.setItem('hub_all_apps',JSON.stringify(DEFAULT_APPS));return[...DEFAULT_APPS]}return JSON.parse(r)}
 
-function renderHub(){
-  const apps=getApps(),grid=document.getElementById('app-grid');grid.innerHTML='';
+async function getApps(){
+  try{const r=await fetch(GH_RAW+'?t='+Date.now());if(r.ok){const a=await r.json();localStorage.setItem('hub_all_apps',JSON.stringify(a));return a}}catch(e){}
+  const raw=localStorage.getItem('hub_all_apps');return raw?JSON.parse(raw):[...DEFAULT_APPS];
+}
+
+async function renderHub(){
+  const apps=await getApps(),grid=document.getElementById('app-grid'),ld=document.getElementById('loading');
+  ld.style.display='none';grid.style.display='';
+  grid.innerHTML='';
   const rows=[];for(let i=0;i<apps.length;i+=3)rows.push(apps.slice(i,i+3));
   rows.forEach(ra=>{
     const row=document.createElement('div');row.className='row';
