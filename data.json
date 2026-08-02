@@ -18,5 +18,10 @@
     "name": "Jellyfin",
     "url": "https://jellyfin.acteches.com/",
     "img": "images/jellyfin.png"
+  },
+  {
+    "name": "Sonarr",
+    "url": "https://sonarr.acteches.com",
+    "img": "https://apps.umbrel.com/app/sonarr"
   }
 ]
