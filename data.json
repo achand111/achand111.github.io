@@ -28,5 +28,10 @@
     "name": "Sonarr",
     "url": "https://sonarr.acteches.com",
     "img": "https://getumbrel.github.io/umbrel-apps-gallery/sonarr/icon.svg"
+  },
+  {
+    "name": "Prowlarr",
+    "url": "https://prowlarr.acteches.com",
+    "img": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjyHzRfz_UE-eIrGTA9Z8LtzAEXctdheCXCYlUItOkt0G_YIUizISctn2u&s=10"
   }
 ]
