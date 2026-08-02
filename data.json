@@ -20,9 +20,9 @@
     "img": "images/jellyfin.png"
   },
   {
-    "name": "Sonarr",
-    "url": "https://sonarr.acteches.com",
-    "img": "https://getumbrel.github.io/umbrel-apps-gallery/sonarr/icon.svg"
+    "name": "Radarr",
+    "url": "https://radarr.acteches.com",
+    "img": "https://getumbrel.github.io/umbrel-apps-gallery/radarr/icon.svg"
   },
   {
     "name": "Sonarr1",
