@@ -23,5 +23,10 @@
     "name": "Sonarr",
     "url": "https://sonarr.acteches.com",
     "img": "https://getumbrel.github.io/umbrel-apps-gallery/sonarr/icon.svg"
+  },
+  {
+    "name": "Sonarr1",
+    "url": "https://sonarr.acteches.com",
+    "img": "https://getumbrel.github.io/umbrel-apps-gallery/sonarr/icon.svg"
   }
 ]
